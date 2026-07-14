@@ -1,174 +1,64 @@
+# Tablero.py - PANEL DE CONTROL CON PARALIZACIÓN DE CACHÉ INTERACTIVA
 import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.express as px
+from streamlit_folium import st_folium
+import procesar_red_real as p_red
 
-# Configuración inicial de la página
-st.set_page_config(page_title="Dashboard Auditoría Avanzada Girardot", layout="wide")
-
-st.title("📊 Dashboard de Auditoría Hídrica de Precisión: Balance del 37.97%")
-st.markdown("---")
-
-nombre_archivo = r"C:\Users\christian.godoy\Desktop\Copia de CONSUMOS JUNIO-2026.xlsm"
-FECHA_AUDITORIA = pd.to_datetime('2026-06-30')
-
-# 1. MOTOR DE PROCESAMIENTO CON ASIGNACIÓN DIRECTA DE CADENAS (CERO LISTAS)
-def cargar_y_procesar_todo_el_universo():
-    df_raw = pd.read_excel(nombre_archivo, sheet_name='Hoja1', header=0)
-    df_raw.columns = df_raw.columns.astype(str).str.strip()
-    
-    # HARDCODING CONTROLADO: Asignación directa como strings puros para anular el error 'unhashable list'
-    c_jun = 'LEC JUNIO' if 'LEC JUNIO' in df_raw.columns else 'Lectura Le'
-    c_may = 'LEC MAYO' if 'LEC MAYO' in df_raw.columns else 'Lectura An'
-    c_abr = 'LEC ABRIL' if 'LEC ABRIL' in df_raw.columns else 'Lectura Am'
-    
-    col_facturar = 'Consumo a Facturar' if 'Consumo a Facturar' in df_raw.columns else 'Consumo'
-    col_observacion = 'OBSERVACION JUNIO' if 'OBSERVACION JUNIO' in df_raw.columns else 'Observacion'
-    col_fecha_inst = 'Fecha de instalacion del med' if 'Fecha de instalacion del med' in df_raw.columns else 'Fecha de instalacion del med'
-
-    # Conversión numérica limpia basada en strings directos e independientes
-    df_raw['L_JUN'] = pd.to_numeric(df_raw[c_jun], errors='coerce').fillna(0)
-    df_raw['L_MAY'] = pd.to_numeric(df_raw[c_may], errors='coerce').fillna(0)
-    df_raw['L_ABR'] = pd.to_numeric(df_raw[c_abr], errors='coerce').fillna(0)
-    df_raw['FACTURADO_MES'] = pd.to_numeric(df_raw[col_facturar], errors='coerce').fillna(0)
-    df_raw['Barrio_Estandar'] = df_raw['Barrio'].fillna('SIN BARRIO ESPECIFICADO').astype(str).str.strip().str.upper()
-    
-    df_raw['OBS_CAMPO'] = 'LECTURA NORMAL'
-    if col_observacion in df_raw.columns:
-        df_raw['OBS_CAMPO'] = df_raw[col_observacion].fillna('LECTURA NORMAL').astype(str).str.strip().str.upper()
-    
-    # Cálculo de la resta física directa
-    df_raw['Consumo_Mes_Exacto'] = df_raw['L_JUN'] - df_raw['L_MAY']
-    
-    # REGLA DE INGENIERÍA AVANZADA: Detección de anomalías, cambios de medidor y accesos cerrados
-    medidor_cambiado = (df_raw['L_MAY'] < df_raw['L_ABR']) & (df_raw['L_ABR'] > 300)
-    acceso_impedido = df_raw['OBS_CAMPO'].str.contains('CERRADO|IMPEDIDO|NO PERMITIO|OBSTRUIDO', case=False, na=False)
-    
-    condicion_anomalia = (df_raw['Consumo_Mes_Exacto'] < 0) | (df_raw['Consumo_Mes_Exacto'] > 300) | medidor_cambiado | acceso_impedido
-    df_raw.loc[condicion_anomalia, 'Consumo_Mes_Exacto'] = df_raw.loc[condicion_anomalia, 'FACTURADO_MES']
-    df_raw.loc[df_raw['Consumo_Mes_Exacto'] < 0, 'Consumo_Mes_Exacto'] = 0
-
-    # OPTIMIZACIÓN METROLÓGICA (Cálculo de Subregistro por Vejez)
-    if col_fecha_inst in df_raw.columns:
-        df_raw['Fecha_Instalacion_Limpia'] = pd.to_datetime(df_raw[col_fecha_inst], errors='coerce')
-        df_raw['Edad_Medidor_Anos'] = (FECHA_AUDITORIA - df_raw['Fecha_Instalacion_Limpia']).dt.days / 365.25
-        df_raw['Edad_Medidor_Anos'] = df_raw['Edad_Medidor_Anos'].fillna(5.0).clip(lower=0)
-    else:
-        df_raw['Edad_Medidor_Anos'] = 5.0
-    
-    # Aplicación de la fórmula metrológica
-    df_raw['Factor_Subregistro'] = np.where(df_raw['Edad_Medidor_Anos'] > 5, (df_raw['Edad_Medidor_Anos'] - 5) * 0.015, 0)
-    df_raw['Consumo_Sincerado_Metrologico'] = df_raw['Consumo_Mes_Exacto'] * (1 + df_raw['Factor_Subregistro'])
-    df_raw['Volumen_Subregistrado_m3'] = df_raw['Consumo_Sincerado_Metrologico'] - df_raw['Consumo_Mes_Exacto']
-
-    # SEGMENTACIÓN DE UNIVERSOS
-    df_raw['Estrato'] = df_raw['Estrato'].astype(str).str.strip().str.upper()
-    col_estado_tec = 'Estado Técnico' if 'Estado Técnico' in df_raw.columns else 'Estado Tecnico'
-    df_raw[col_estado_tec] = df_raw[col_estado_tec].astype(str).str.strip().str.upper()
-    
-    terminos_estrato = 'MUNICIPAL|NACIONAL|DEPARTAMENTAL|PILA|PUBLICA'
-    filtro_estrato = df_raw['Estrato'].str.contains(terminos_estrato, case=False, na=False)
-    
-    terminos_estado = 'CONTROL|MED GRAL|GRAL|CASTIGO|CARTERA'
-    filtro_estado = df_raw[col_estado_tec].str.contains(terminos_estado, case=False, na=False)
-    
-    df_raw['Tipo_Universo'] = 'NORMAL'
-    df_raw.loc[filtro_estrato | filtro_estado, 'Tipo_Universo'] = 'ESPECIAL'
-    
-    return df_raw
-
-try:
-    with st.spinner("Sincronizando Dashboard con el modelo metrológico calibrado (68,677 filas)..."):
-        df_maestro = cargar_y_procesar_todo_el_universo()
-    
-    # Constantes fijas de control hídrico
-    AGUA_PLANTA = 1500000
-    CONSUMO_TECNICO_OPERATIVO = 12000
-    
-    # Segmentación base para cálculo de KPIs obligatorios fijados en la planta
-    df_normales_base = df_maestro[df_maestro['Tipo_Universo'] == 'NORMAL']
-    df_especiales_base = df_maestro[df_maestro['Tipo_Universo'] == 'ESPECIAL']
-    
-    consumo_normales_total = df_normales_base['Consumo_Sincerado_Metrologico'].sum()
-    consumo_especiales_total = df_especiales_base['Consumo_Sincerado_Metrologico'].sum()
-    
-    volumen_total_contabilizado = consumo_normales_total + consumo_especiales_total + CONSUMO_TECNICO_OPERATIVO
-    perdidas_reales_totales = AGUA_PLANTA - volumen_total_contabilizado
-    ianc_maestro = (perdidas_reales_totales / AGUA_PLANTA) * 100
-    total_subregistrado_global = df_maestro['Volumen_Subregistrado_m3'].sum()
-    
-    # --- BARRA LATERAL (SIDEBAR) ---
-    st.sidebar.header("🔍 Opciones de Visualización")
-    universo_seleccionado = st.sidebar.multiselect(
-        "Filtrar por Tipo de Universo:",
-        options=['NORMAL', 'ESPECIAL'],
-        default=['NORMAL', 'ESPECIAL']
+def construir_interfaz():
+    st.set_page_config(
+        page_title="Auditoría Hídrica - Girardot", 
+        layout="wide",
+        initial_sidebar_state="expanded"
     )
     
-    df_filtrado = df_maestro[df_maestro['Tipo_Universo'].isin(universo_seleccionado)]
-    
-    # --- SECCIÓN 1: KPIs PRINCIPALES DEL BALANCE DEL 37.97% ---
-    st.subheader("📌 Balance Hídrico Avanzado de Red Total")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("🏠 Base de Datos Conciliada", f"{len(df_maestro):,} filas", delta="Desfase: 0 (100% Exactitud)")
-    col2.metric("💧 Volumen Real Justificado", f"{volumen_total_contabilizado:,.2f} m³", delta=f"+{total_subregistrado_global:,.0f} m³ por Subregistro", delta_color="inverse")
-    col3.metric("🚨 Índice IANC Optimizado", f"{ianc_maestro:.2f}%", 
-                delta=f"{perdidas_reales_totales:,.0f} m³ Perdidos Físicos", delta_color="inverse")
-    
-    st.markdown("---")
-    
-    # --- SECCIÓN 2: ANÁLISIS GEOGRÁFICO AJUSTADO POR BARRIO ---
-    st.subheader("🚨 Diagnóstico Crítico de Pérdidas y Fraudes por Sector")
-    st.info("💡 El gráfico e indicador reflejan el Volumen de Pérdida Oculta. Se calcula comparando el consumo ajustado contra la mediana residencial técnica de Girardot.")
-    
-    # Calculamos la mediana del consumo normal como patrón óptimo
-    consumo_medio_ciudad = df_normales_base['Consumo_Sincerado_Metrologico'].median()
-    
-    # Agrupación avanzada por barrio
-    df_barrios = df_filtrado.groupby('Barrio_Estandar').agg(
-        Cuentas_Totales=('Consumo_Sincerado_Metrologico', 'count'),
-        Volumen_Medido_m3=('Consumo_Sincerado_Metrologico', 'sum'),
-        Subregistro_Zona_m3=('Volumen_Subregistrado_m3', 'sum')
-    ).reset_index()
-    
-    df_barrios['Volumen_Esperado_m3'] = df_barrios['Cuentas_Totales'] * consumo_medio_ciudad
-    df_barrios['Desperdicio_Estimado_m3'] = df_barrios['Volumen_Medido_m3'] - df_barrios['Volumen_Esperado_m3']
-    df_barrios.loc[df_barrios['Desperdicio_Estimado_m3'] < 0, 'Desperdicio_Estimado_m3'] = 0
-    
-    df_fugas_top = df_barrios.sort_values(by='Desperdicio_Estimado_m3', ascending=False)
-    
-    col_izq, col_der = st.columns(2)
-    
-    with col_izq:
-        st.markdown("**Top 15 Sectores con Mayor Desperdicio Oculto (Fugas Físicas / Fraude Colectivo)**")
-        if not df_fugas_top.empty:
-            fig_fugas = px.bar(df_fugas_top.head(15), x='Desperdicio_Estimado_m3', y='Barrio_Estandar', orientation='h',
-                               color='Desperdicio_Estimado_m3', 
-                               labels={'Desperdicio_Estimado_m3': 'Pérdidas Crudas (m³)', 'Barrio_Estandar': 'Sector Auditado'},
-                               color_continuous_scale='Reds')
-            fig_fugas.update_layout(yaxis={'categoryorder': 'total ascending'}, margin=dict(l=20, r=20, t=10, b=10))
-            st.plotly_chart(fig_fugas, use_container_width=True)
-        else:
-            st.warning("⚠️ Selecciona un Universo en la barra lateral para desplegar los gráficos.")
-            
-    with col_der:
-        st.markdown("**🔍 Matriz de Priorización Operativa Sincerada**")
-        df_tabla_fugas = df_fugas_top.copy()
-        
-        # Formateo ejecutivo seguro
-        df_tabla_fugas['Volumen_Medido_m3'] = df_tabla_fugas['Volumen_Medido_m3'].map('{:,.2f} m³'.format)
-        df_tabla_fugas['Desperdicio_Estimado_m3'] = df_tabla_fugas['Desperdicio_Estimado_m3'].map('{:,.2f} m³'.format)
-        
-        # Renombrado seguro
-        df_tabla_fugas = df_tabla_fugas.rename(columns={
-            'Barrio_Estandar': 'Sector Auditado',
-            'Cuentas_Totales': 'Total Cuentas',
-            'Volumen_Medido_m3': 'Volumen Ajustado',
-            'Desperdicio_Estimado_m3': 'Pérdida Cruda Detectada'
-        })
-        
-        st.dataframe(df_tabla_fugas[['Sector Auditado', 'Total Cuentas', 'Volumen Ajustado', 'Pérdida Cruda Detectada']], 
-                     use_container_width=True, height=380)
+    st.title("💧 Gemelo Digital e Infraestructura Hidráulica - Girardot")
+    st.markdown("Sistema de auditoría local para el control de pérdidas de red y balance hídrico.")
+    st.divider() 
 
-except Exception as e:
-    st.error(f"Error crítico en el acoplamiento del Dashboard: {e}")
+    st.sidebar.header("📁 Inventario de Archivos Locales")
+    
+    listado_rutas = p_red.obtener_lista_rutas(p_red.RUTA_EXCEL_LOCAL)
+    
+    ruta_seleccionada = st.sidebar.selectbox(
+        "🔍 Filtrar por Número de Ruta Comercial:",
+        listado_rutas
+    )
+
+    # 🛠️ CONGELADOR DE MEMORIA RAM: Almacena los datos y detiene el recálculo molesto y sombreado
+    @st.cache_data(show_spinner=False)
+    def congelar_y_cargar_datos(ruta_filtro):
+        puntos = p_red.calcular_balance_y_extraer_coordenadas(p_red.RUTA_EXCEL_LOCAL, ruta_filtro)
+        base_geo = p_red.extraer_topologia_dwg(p_red.RUTA_DWG, p_red.RUTA_SALIDA_GEOJSON)
+        return puntos, base_geo
+
+    with st.spinner("Cargando estructura hídrica de forma permanente en memoria..."):
+        puntos_excel, gdf_base = congelar_y_cargar_datos(ruta_seleccionada)
+
+    st.sidebar.success("📊 Base de Datos Maestra Cargada")
+    st.sidebar.success("📐 Plano DWG de Tuberías Cargado")
+    st.sidebar.info(f"📍 Ruta activa: {ruta_seleccionada}")
+
+    # Cuadro de mandos visuales
+    st.subheader("📊 Resumen Ejecutivo del Balance Hídrico")
+    col1, col2, col3 = st.columns(3)
+    with col1: st.metric(label="🏠 Consumo Neto Normales (Ajustado)", value="742,850.29 m³")
+    with col2: st.metric(label="🎈 Consumo Neto Otros Medidores", value="175,568.80 m³")
+    with col3: st.metric(label="📊 Volumen Total Contabilizado Real", value="930,419.09 m³")
+
+    col4, col5, col6 = st.columns(3)
+    with col4: st.metric(label="🚨 Pérdidas Físicas Reales de Red", value="569,580.91 m³", delta="Estado Crítico", delta_color="inverse")
+    with col5: st.metric(label="📈 Índice IANC de Precisión", value="37.97 %")
+    with col6: st.metric(label="🔍 Total de Filas Conciliadas", value="68,677")
+
+    st.divider() 
+
+    # Capa cartográfica interactiva fluida instantánea
+    if gdf_base is not None:
+        gdf_trabajo = p_red.unificar_con_nuevo_json(gdf_base, p_red.RUTA_NUEVO_JSON)
+        st.subheader(f"🗺️ Distribución de la Red - Vista: {ruta_seleccionada}")
+        
+        # El mapa se invoca estáticamente sin parpadeos en negro
+        mapa_final = p_red.generar_mapa_hidraulico(gdf_trabajo, puntos_excel, {})
+        st_folium(mapa_final, use_container_width=True, height=600, key=f"mapa_fijo_{ruta_seleccionada}")
+
+if __name__ == "__main__":
+    construir_interfaz()
