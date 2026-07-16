@@ -1,43 +1,72 @@
+import matplotlib.pyplot as plt
+import seaborn as sns
 import os
-import folium
-import pandas as pd
-from folium.plugins import MarkerCluster
 
-def imprimir_consola_balance(ind):
-    total = ind['filas_normales'] + ind['filas_especiales']
-    print("\n" + "🏁" * 25 + "\n      BALANCE HÍDRICO GLOBAL DE PRECISIÓN (HydroAI-Pro 2026)\n" + "🏁" * 25)
-    print(f"🏠 Consumo Neto Normales (Ajustado):     {ind['consumo_normales']:,.2f} m³")
-    print(f"📍 Consumo Neto Otros Medidores:         {ind['consumo_especiales']:,.2f} m³")
-    print(f"📊 VOLUMEN TOTAL CONTABILIZADO REAL:     {ind['volumen_total_contabilizado']:,.2f} m³")
-    print("-" * 50)
-    print(f"🚨 PÉRDIDAS FÍSICAS REALES DE RED:       {ind['perdidas_reales_m3']:,.2f} m³")
-    print(f"📈 ÍNDICE IANC DE PRECISIÓN OPTIMIZADO:  {ind['ianc']:.2f}%\n" + "=" * 50)
-
-def exportar_universos(df_norm, df_esp, ruta_salida):
-    os.makedirs(ruta_salida, exist_ok=True)
-    df_norm.to_csv(os.path.join(ruta_salida, "universo_normales.csv"), index=False, encoding='utf-8-sig')
-    df_esp.to_csv(os.path.join(ruta_salida, "universo_especiales.csv"), index=False, encoding='utf-8-sig')
-
-def generar_mapa_interactivo_girardot(df_gemelo, col_map, ruta_salida):
-    col_lat = [c for c in df_gemelo.columns if 'LAT' in c.upper() or 'Y' in c.upper()]
-    col_lon = [c for c in df_gemelo.columns if 'LON' in c.upper() or 'X' in c.upper()]
-    if not col_lat or not col_lon: return
-    col_lat = col_lat[0]
-    col_lon = col_lon[0]
-    
-    df_mapa = df_gemelo.dropna(subset=[col_lat, col_lon]).copy()
-    df_mapa[col_lat] = pd.to_numeric(df_mapa[col_lat], errors='coerce')
-    df_mapa[col_lon] = pd.to_numeric(df_mapa[col_lon], errors='coerce')
-    df_mapa = df_mapa.dropna(subset=[col_lat, col_lon])
-    
-    mapa = folium.Map(location=[4.3050, -74.8014], zoom_start=14)
-    cluster = MarkerCluster().add_to(mapa)
-    
-    for _, fila in df_mapa.head(2000).iterrows():
-        obs = str(fila['OBS_CAMPO'])
-        color = "orange" if "CERRADO" in obs else ("purple" if "DESTRUIDO" in obs else ("darkred" if fila['Factor_Subregistro'] > 0 else "blue"))
-        popup_text = f"Contrato: {fila[col_map['id_cuenta']]}<br>Consumo: {fila['Consumo_Sincerado_Metrologico']:.1f} m³"
-        folium.Marker(location=[fila[col_lat], fila[col_lon]], popup=popup_text, icon=folium.Icon(color=color)).add_to(cluster)
+def graficar_curva_consumo_y_fuga(df_datos, nombre_nodo, ruta_salida="reportes/"):
+    """
+    Genera una gráfica comparativa del consumo a lo largo de las 24 horas,
+    resaltando visualmente si ocurrió una anomalía o fuga simulada.
+    """
+    if not os.path.exists(ruta_salida):
+        os.makedirs(ruta_salida)
         
-    os.makedirs(ruta_salida, exist_ok=True)
-    mapa.save(os.path.join(ruta_salida, "gemelo_digital_mapa.html"))
+    plt.figure(figsize=(10, 5))
+    sns.set_theme(style="whitegrid")
+    
+    # Filtrar datos del nodo específico
+    df_nodo = df_datos[df_datos['id_punto'] == nombre_nodo]
+    
+    # Graficar la línea de consumo en metros cúbicos por segundo
+    plt.plot(df_nodo['timestamp'], df_nodo['caudal_simulado_m3s'], 
+             label='Caudal Registrado (m³/s)', color='royalblue', linewidth=2.5, marker='o')
+    
+    # Resaltar en rojo las horas donde el estado es de Alerta por Fuga
+    df_fuga = df_nodo[df_nodo['estado_sensor'] == 'ALERTA_FUGA_SIMULADA']
+    if not df_fuga.empty:
+        plt.scatter(df_fuga['timestamp'], df_fuga['caudal_simulado_m3s'], 
+                    color='crimson', s=100, zorder=5, label='Fuga / Anomalía Detectada')
+        
+    plt.title(f"Gemelo Digital Girardot - Monitoreo de Caudal: {nombre_nodo}", fontsize=14, fontweight='bold')
+    plt.xlabel("Hora del Día", fontsize=12)
+    plt.ylabel("Caudal (m³/s)", fontsize=12)
+    plt.xticks(rotation=45)
+    plt.legend(loc="upper left")
+    plt.tight_layout()
+    
+    # Guardar gráfica
+    archivo_final = os.path.join(ruta_salida, f"reporte_caudal_{nombre_nodo}.png")
+    plt.savefig(archivo_final, dpi=300)
+    plt.close()
+    print(f"📊 Gráfica de caudales guardada exitosamente en: {archivo_final}")
+
+def generar_resumen_presiones_criticas(serie_presiones, umbral_critico=15.0, ruta_salida="reportes/"):
+    """
+    Analiza las presiones calculadas por EPANET y genera un histograma, 
+    alertando si la presión cae por debajo del umbral mínimo regulado (en metros de columna de agua - mca).
+    """
+    if not os.path.exists(ruta_salida):
+        os.makedirs(ruta_salida)
+        
+    plt.figure(figsize=(8, 4))
+    
+    # Crear un histograma de las presiones de toda la red urbana
+    sns.histplot(serie_presiones, kde=True, color='seagreen', bins=15)
+    
+    # Línea roja indicando la presión mínima reglamentaria en Colombia
+    plt.axvline(x=umbral_critico, color='red', linestyle='--', linewidth=2, 
+                label=f'Presión Mínima Requerida ({umbral_critico} mca)')
+    
+    plt.title("Distribución de Presiones en la Red de Distribución de Girardot", fontsize=12, fontweight='bold')
+    plt.xlabel("Presión (mca - Metros de Columna de Agua)", fontsize=10)
+    plt.ylabel("Cantidad de Nodos", fontsize=10)
+    plt.legend()
+    plt.tight_layout()
+    
+    archivo_final = os.path.join(ruta_salida, "analisis_presiones_red.png")
+    plt.savefig(archivo_final, dpi=300)
+    plt.close()
+    
+    # Conteo analítico de fallas
+    nodos_afectados = sum(serie_presiones < umbral_critico)
+    print(f"📉 Alerta: {nodos_afectados} nodos presentan presiones por debajo del mínimo legal.")
+    print(f"📊 Histograma de presiones guardado en: {archivo_final}")
