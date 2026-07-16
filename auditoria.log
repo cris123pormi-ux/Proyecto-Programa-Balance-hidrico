@@ -1,0 +1,335 @@
+2026-07-16 14:11:11 - [INFO] - 🚀 Inicializando el sistema modular e inteligente HydroAI-Pro...
+2026-07-16 14:11:11 - [ERROR] - 💥 Falla catastrófica no controlada en el motor modular de ejecución
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\main.py", line 21, in ejecutar_pipeline
+    df, col_map = cargar_y_mapear_excel_universal(cfg['rutas']['archivo_entrada'])
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\src\lector_excel.py", line 18, in cargar_y_mapear_excel_universal
+    if not os.path.exists(ruta_archivo): raise FileNotFoundError(f"No se encontró el archivo en: {ruta_archivo}")
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: No se encontró el archivo en: datos_facturacion_campo.xlsx
+2026-07-16 14:13:20 - [INFO] - 🚀 Inicializando el sistema modular e inteligente HydroAI-Pro...
+2026-07-16 14:13:38 - [ERROR] - 💥 Falla catastrófica no controlada en el motor modular de ejecución
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'COL_VIRTUAL_C_JUN'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\main.py", line 22, in ejecutar_pipeline
+    df = limpiar_y_tipificar_datos_universales(df, col_map)
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\src\validaciones.py", line 46, in limpiar_y_tipificar_datos_universales
+    df_limpio[col_map[col]] = pd.to_numeric(df_limpio[col_map[col]], errors='coerce').fillna(0)
+                                            ~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'COL_VIRTUAL_C_JUN'
+2026-07-16 14:15:40 - [INFO] - 🚀 Inicializando el sistema modular e inteligente HydroAI-Pro...
+2026-07-16 14:15:58 - [ERROR] - 💥 Falla catastrófica no controlada en el motor modular de ejecución
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'COL_VIRTUAL_C_JUN'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\main.py", line 22, in ejecutar_pipeline
+    df = limpiar_y_tipificar_datos_universales(df, col_map)
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\src\validaciones.py", line 46, in limpiar_y_tipificar_datos_universales
+    df_limpio[col_map[col]] = pd.to_numeric(df_limpio[col_map[col]], errors='coerce').fillna(0)
+                                            ~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'COL_VIRTUAL_C_JUN'
+2026-07-16 14:17:21 - [INFO] - 🚀 Inicializando el sistema modular e inteligente HydroAI-Pro...
+2026-07-16 14:17:58 - [ERROR] - 💥 Falla catastrófica no controlada en el motor modular de ejecución
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'COL_VIRTUAL_C_ABR'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\main.py", line 22, in ejecutar_pipeline
+    df = limpiar_y_tipificar_datos_universales(df, col_map)
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\src\validaciones.py", line 46, in limpiar_y_tipificar_datos_universales
+    df_limpio[col_map[col]] = pd.to_numeric(df_limpio[col_map[col]], errors='coerce').fillna(0)
+                                            ~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'COL_VIRTUAL_C_ABR'
+2026-07-16 14:19:00 - [INFO] - 🚀 Inicializando el sistema modular e inteligente HydroAI-Pro...
+2026-07-16 14:19:37 - [ERROR] - 💥 Falla catastrófica no controlada en el motor modular de ejecución
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'COL_VIRTUAL_C_ABR'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\main.py", line 22, in ejecutar_pipeline
+    df = limpiar_y_tipificar_datos_universales(df, col_map)
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\src\validaciones.py", line 46, in limpiar_y_tipificar_datos_universales
+    df_limpio[col_map[col]] = pd.to_numeric(df_limpio[col_map[col]], errors='coerce').fillna(0)
+                                            ~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'COL_VIRTUAL_C_ABR'
+2026-07-16 14:22:07 - [INFO] - 🚀 Inicializando el sistema modular e inteligente HydroAI-Pro...
+2026-07-16 14:22:45 - [ERROR] - 💥 Falla catastrófica no controlada en el motor modular de ejecución
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'COL_VIRTUAL_COL_FACTURAR'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\main.py", line 35, in ejecutar_pipeline
+    df = limpiar_y_tipificar_datos_universales(df, col_map)
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\src\validaciones.py", line 53, in limpiar_y_tipificar_datos_universales
+    df_limpio[col_map[col]] = pd.to_numeric(df_limpio[col_map[col]], errors='coerce').fillna(0)
+                                            ~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'COL_VIRTUAL_COL_FACTURAR'
+2026-07-16 14:24:34 - [INFO] - 🚀 Inicializando el sistema modular e inteligente HydroAI-Pro...
+2026-07-16 14:25:11 - [ERROR] - 💥 Falla catastrófica no controlada en el motor modular de ejecución
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'COL_VIRTUAL_COL_FACTURAR'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\main.py", line 35, in ejecutar_pipeline
+    df = limpiar_y_tipificar_datos_universales(df, col_map)
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\src\validaciones.py", line 53, in limpiar_y_tipificar_datos_universales
+    df_limpio[col_map[col]] = pd.to_numeric(df_limpio[col_map[col]], errors='coerce').fillna(0)
+                                            ~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'COL_VIRTUAL_COL_FACTURAR'
+2026-07-16 14:27:47 - [INFO] - 🚀 Inicializando el sistema modular e inteligente HydroAI-Pro...
+2026-07-16 14:28:06 - [ERROR] - 💥 Falla catastrófica no controlada en el motor modular de ejecución
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'LEC JUNIO 202'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\main.py", line 35, in ejecutar_pipeline
+    df = limpiar_y_tipificar_datos_universales(df, col_map)
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\src\validaciones.py", line 53, in limpiar_y_tipificar_datos_universales
+    df_limpio[col_map[col]] = pd.to_numeric(df_limpio[col_map[col]], errors='coerce').fillna(0)
+                                            ~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'LEC JUNIO 202'
+2026-07-16 14:30:21 - [INFO] - 🚀 Inicializando el sistema modular e inteligente HydroAI-Pro...
+2026-07-16 14:30:40 - [ERROR] - 💥 Falla catastrófica no controlada en el motor modular de ejecución
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'LEC JUNIO 202'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\main.py", line 35, in ejecutar_pipeline
+    df = limpiar_y_tipificar_datos_universales(df, col_map)
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\src\validaciones.py", line 53, in limpiar_y_tipificar_datos_universales
+    df_limpio[col_map[col]] = pd.to_numeric(df_limpio[col_map[col]], errors='coerce').fillna(0)
+                                            ~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'LEC JUNIO 202'
+2026-07-16 14:32:01 - [INFO] - 🚀 Inicializando el sistema modular e inteligente HydroAI-Pro...
+2026-07-16 14:32:21 - [ERROR] - 💥 Falla catastrófica no controlada en el motor modular de ejecución
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'COL_VIRTUAL_C_MAY'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\main.py", line 35, in ejecutar_pipeline
+    df = limpiar_y_tipificar_datos_universales(df, col_map)
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\src\validaciones.py", line 47, in limpiar_y_tipificar_datos_universales
+    df_limpio["COL_VIRTUAL_C_ABR"] = df_limpio[nombre_real_mayo]
+                                     ~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'COL_VIRTUAL_C_MAY'
+2026-07-16 14:32:40 - [INFO] - 🚀 Inicializando el sistema modular e inteligente HydroAI-Pro...
+2026-07-16 14:32:59 - [ERROR] - 💥 Falla catastrófica no controlada en el motor modular de ejecución
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'COL_VIRTUAL_C_MAY'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\main.py", line 35, in ejecutar_pipeline
+    df = limpiar_y_tipificar_datos_universales(df, col_map)
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\src\validaciones.py", line 47, in limpiar_y_tipificar_datos_universales
+    df_limpio["COL_VIRTUAL_C_ABR"] = df_limpio[nombre_real_mayo]
+                                     ~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'COL_VIRTUAL_C_MAY'
+2026-07-16 14:41:23 - [INFO] - 🚀 Inicializando el sistema modular e inteligente HydroAI-Pro con soporte Cloud...
+2026-07-16 14:48:00 - [ERROR] - 💥 Falla catastrófica no controlada en el motor modular de ejecución
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'COL_VIRTUAL_C_MAY'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\main.py", line 40, in ejecutar_pipeline
+    df = limpiar_y_tipificar_datos_universales(df, col_map)
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\src\validaciones.py", line 47, in limpiar_y_tipificar_datos_universales
+    df_limpio["COL_VIRTUAL_C_ABR"] = df_limpio[nombre_real_mayo]
+                                     ~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'COL_VIRTUAL_C_MAY'
+2026-07-16 14:51:32 - [INFO] - 🚀 Inicializando el sistema modular autoadaptable HydroAI-Pro Cloud...
+2026-07-16 14:58:42 - [ERROR] - 💥 Falla catastrófica no controlada en el motor modular de ejecución
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'COL_VIRTUAL_C_MAY'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\main.py", line 68, in ejecutar_pipeline
+    df = limpiar_y_tipificar_datos_universales(df, col_map)
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\src\validaciones.py", line 47, in limpiar_y_tipificar_datos_universales
+    df_limpio["COL_VIRTUAL_C_ABR"] = df_limpio[nombre_real_mayo]
+                                     ~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'COL_VIRTUAL_C_MAY'
+2026-07-16 14:59:49 - [INFO] - 🚀 Inicializando el sistema modular autoadaptable HydroAI-Pro Cloud...
+2026-07-16 15:06:35 - [ERROR] - 💥 Falla catastrófica no controlada en el motor modular de ejecución
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'COL_VIRTUAL_COL_FACTURAR'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\main.py", line 68, in ejecutar_pipeline
+    df = limpiar_y_tipificar_datos_universales(df, col_map)
+  File "C:\Users\christian.godoy\Desktop\Auditoria_IA\src\validaciones.py", line 63, in limpiar_y_tipificar_datos_universales
+    df_limpio[col_map[col]] = pd.to_numeric(df_limpio[col_map[col]], errors='coerce').fillna(0)
+                                            ~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "C:\Users\christian.godoy\AppData\Roaming\Python\Python314\site-packages\pandas\core\indexes\base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'COL_VIRTUAL_COL_FACTURAR'
