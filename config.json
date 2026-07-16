@@ -1,0 +1,17 @@
+{
+  "rutas": {
+    "archivo_entrada": "C:\\Users\\christian.godoy\\Desktop\\Copia de CONSUMOS JUNIO-2026.xlsm",
+    "carpeta_salida": "salidas_reportes",
+    "logs": "logs/auditoria.log"
+  },
+  "umbrales_metrologia": {
+    "limite_consumo_anomalo": 300,
+    "edad_limite_anos": 5.0,
+    "factor_subregistro_anual": 0.015
+  },
+  "parametros_oficiales": {
+    "fecha_auditoria": "2026-06-30",
+    "agua_producida_planta": 1250000.0,
+    "consumo_tecnico_operativo": 45000.0
+  }
+}
