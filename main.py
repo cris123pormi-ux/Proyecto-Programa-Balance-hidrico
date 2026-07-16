@@ -1,27 +1,26 @@
 import lector_mongo
-import validaciones
+import generar_datos_girardot
 import red_hidraulica
-import geoprocesamiento
 import pandas as pd
 
-def flujo_con_mapeo_geografico():
-    print("🛰️ Descargando datos de Girardot desde MongoDB Atlas...")
-    client = lector_mongo.obtener_cliente_mongo()
-    df_mapa_crudo = pd.DataFrame(list(client['Mapa']['mapa hidraulico'].find({})))
-    client.close()
+def simular_contingencia_en_la_red():
+    print("🤖 Iniciando entorno de pruebas y simulación de fallas...")
     
-    # 1. Limpieza técnica
-    df_mapa_limpio = validaciones.limpiar_y_validar_infraestructura(df_mapa_crudo)
+    # 1. Creamos datos sintéticos para un nodo de Girardot (ej: Hub_Terminal_Transportes)
+    nodo_prueba = "Hub_Terminal"
+    print(f"Generando curva de demanda base de 24 horas para: {nodo_prueba}")
+    df_consumo_normal = generar_datos_girardot.generar_patron_demanda_diaria(nodo_prueba)
     
-    # 2. PROCESAMIENTO GEOGRÁFICO
-    print("🗺️ Construyendo capas espaciales para el Gemelo Digital...")
-    gdf_nodos = geoprocesamiento.crear_capa_nodos(df_mapa_limpio)
-    gdf_tuberias = geoprocesamiento.crear_capa_tuberias(df_mapa_limpio, gdf_nodos)
+    # 2. Inyectamos una fuga a las 2:00 PM (Hora 14) para ver qué pasa con la presión
+    print("💥 Inyectando simulación de ruptura de tubería a las 14:00 horas...")
+    df_con_fuga = generar_datos_girardot.simular_evento_fuga_girardot(df_consumo_normal, nodo_prueba, hora_fuga=14)
     
-    print(f"📊 Capas GIS listas: {len(gdf_nodos)} nodos y {len(gdf_tuberias)} tuberías georreferenciadas.")
+    # Imprimir las últimas horas para validar el incremento de caudal
+    print(df_con_fuga[['timestamp', 'caudal_simulado_m3s', 'estado_sensor']].tail(12))
     
-    # Aquí ya podrías exportar tus capas a formato GeoJSON o Shapefile para visualizarlas en un mapa web:
-    # gdf_tuberias.to_file("tuberias_girardot.geojson", driver="GeoJSON")
+    # 3. Aquí pasarías este DataFrame con sobrecosto de caudal a tu red_hidraulica
+    # para verificar analíticamente cuánta presión cae en los barrios aledaños de Girardot.
+    print("✅ Datos de contingencia listos para el estrés del motor hidráulico.")
 
 if __name__ == "__main__":
-    flujo_con_mapeo_geografico()
+    simular_contingencia_en_la_red()
