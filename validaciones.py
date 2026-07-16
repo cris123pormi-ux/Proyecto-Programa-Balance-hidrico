@@ -1,71 +1,55 @@
 import pandas as pd
 import numpy as np
 
-def auditar_consistencia_campo(df, col_map):
+def limpiar_y_validar_infraestructura(df_mapa):
     """
-    Analiza anomalías físicas y operativas en los datos de medidores.
-    Retorna el DataFrame con banderas de alerta.
+    Verifica que el mapa hidráulico descargado contenga los campos requeridos
+    y limpia valores nulos o formatos incorrectos.
     """
-    df_alertas = df.copy()
+    if df_mapa.empty:
+        print("⚠️ El DataFrame de infraestructura está vacío.")
+        return df_mapa
+
+    # 1. Asegurar que existan identificadores únicos
+    if '_id' in df_mapa.columns:
+        df_mapa['_id'] = df_mapa['_id'].astype(str)
     
-    # Garantizar la existencia de las columnas mapeadas en las series de control
-    obs_series = df_alertas[col_map["col_observacion"]].fillna("").astype(str).str.upper()
-    estrato_series = df_alertas[col_map["col_estrato"]].fillna("").astype(str)
-    estado_series = df_alertas[col_map["col_estado_tec"]].fillna("").astype(str).str.upper()
-
-    # 1. Alerta: Fraude Potencial o Error de Digitación
-    condicion_bajada = (df_alertas[col_map["c_jun"]] < df_alertas[col_map["c_may"]])
-    condicion_no_cambio = ~obs_series.str.contains("CAMBIADO", na=False)
-    df_alertas["ALERTA_LECTURA_NEGATIVA"] = condicion_bajada & condicion_no_cambio
+    # 2. Convertir y limpiar campos numéricos críticos para EPANET
+    campos_numericos = ['diametro', 'longitud', 'rugosidad', 'elevacion']
+    for campo in campos_numericos:
+        if campo in df_mapa.columns:
+            # Reemplazar nulos o texto corrupto por valores por defecto realistas
+            df_mapa[campo] = pd.to_numeric(df_mapa[campo], errors='coerce')
     
-    # 2. Alerta: Medidor Frenado / Consumo Cero sospechoso
-    df_alertas["ALERTA_MEDIDOR_FRENADO"] = (
-        (df_alertas[col_map["c_jun"]] == df_alertas[col_map["c_may"]]) & 
-        (df_alertas[col_map["c_may"]] == df_alertas[col_map["c_abr"]]) &
-        (estado_series == "CON SERVICIO")
-    )
+    # Valores de contingencia (Rellenar vacíos con ingeniería básica)
+    valores_defecto = {
+        'diametro': 0.15,   # 150mm / 6 pulgadas estándar
+        'longitud': 100.0,  # 100 metros por tramo
+        'rugosidad': 100.0, # Coeficiente Hazen-Williams estándar (PVC/Hierro)
+        'elevacion': 289.0  # Elevación media aproximada de Girardot
+    }
+    df_mapa.fillna(value=valores_defecto, inplace=True)
     
-    # 3. Alerta: Alto Consumo / Fuga Invisible (Consumo > 60 m³ en estratos bajos)
-    df_alertas["ALERTA_FUGA_SOSP_E1_E2"] = (
-        df_alertas[col_map["col_facturar"]] > 60
-    ) & estrato_series.str.contains("1|2", regex=True)
+    return df_mapa
 
-    return df_alertas
-
-
-def limpiar_y_tipificar_datos_universales(df, col_map):
+def validar_diccionario_demandas(diccionario_demandas):
     """
-    Punto de entrada oficial para el pipeline de HydroAI Pro.
-    Limpia tipos de datos y estabiliza dinámicamente columnas históricas ausentes.
+    Asegura que los caudales de los nodos sean numéricos, positivos 
+    y maneja excepciones de lecturas atípicas (fugas masivas o errores de sensor).
     """
-    df_limpio = df.copy()
-    
-    # 🚨 DETECTOR DE CONTINGENCIA EN CASCADA COMPLETO
-    # Escenario A: Si Junio es virtual (no debería pasar), se inicializa en 0
-    if "VIRTUAL" in str(col_map["c_jun"]):
-        df_limpio[col_map["c_jun"]] = 0
-
-    # Escenario B: Si Mayo es virtual, se genera una columna real llena con los datos de Junio
-    if "VIRTUAL" in str(col_map["c_may"]):
-        print("ℹ️ Nota: No se detectó histórico de Mayo en el archivo. Estabilizando columna virtual...")
-        df_limpio["COL_VIRTUAL_C_MAY"] = df_limpio[col_map["c_jun"]]
-        col_map["c_may"] = "COL_VIRTUAL_C_MAY"
-
-    # Escenario C: Si Abril es virtual, se genera una columna real llena con los datos de Mayo (ya estabilizado)
-    if "VIRTUAL" in str(col_map["c_abr"]):
-        print("ℹ️ Nota: No se detectó histórico de Abril en el archivo. Estabilizando columna virtual...")
-        df_limpio["COL_VIRTUAL_C_ABR"] = df_limpio[col_map["c_may"]]
-        col_map["c_abr"] = "COL_VIRTUAL_C_ABR"
-
-    # Homologación y tipificación de columnas críticas a numéricas de forma segura
-    columnas_numericas = ["c_jun", "c_may", "c_abr", "col_facturar"]
-    for col in columnas_numericas:
-        df_limpio[col_map[col]] = pd.to_numeric(df_limpio[col_map[col]], errors='coerce').fillna(0)
-        
-    # Limpieza de fechas si es necesario
-    df_limpio[col_map["col_fecha_inst"]] = pd.to_datetime(df_limpio[col_map["col_fecha_inst"]], errors='coerce')
-    
-    # Inyección automática de la auditoría de campo hídrica
-    df_resultado = auditar_consistencia_campo(df_limpio, col_map)
-    
-    return df_resultado
+    demandas_limpias = {}
+    for nodo, caudal in diccionario_demandas.items():
+        try:
+            caudal_float = float(caudal)
+            # Evitar caudales negativos incoherentes
+            if caudal_float < 0:
+                caudal_float = 0.0
+            # Detectar consumos desproporcionados (ej. más de 500 L/s en un solo punto)
+            if caudal_float > 0.5: 
+                print(f"⚠️ Alerta metrológica: Caudal sospechoso en {nodo}: {caudal_float} m³/s")
+            
+            demandas_limpias[str(nodo)] = caudal_float
+        except (ValueError, TypeError):
+            demandas_limpias[str(nodo)] = 0.0 # Consumo cero si el dato está roto
+            
+    return demandas_limpias
