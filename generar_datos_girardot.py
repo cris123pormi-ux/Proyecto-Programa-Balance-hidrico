@@ -1,74 +1,57 @@
-import pandas as pd
 import numpy as np
-import os
+import pandas as pd
+from datetime import datetime, timedelta
 
-def crear_excel_simulado():
-    print("🌍 Generando universo geoespacial de medidores para Girardot...")
+def generar_patron_demanda_diaria(id_punto, fecha_inicio="2026-07-16"):
+    """
+    Genera una serie de tiempo de 24 horas de consumo de agua (m3/s)
+    para un nodo específico en Girardot, simulando la curva real de la ciudad.
+    """
+    # Patrón típico de consumo urbano:
+    # Pico a las 7 AM (baño/desayuno), bajón a mediodía, pico menor a las 7 PM.
+    horas = list(range(24))
+    multiplicadores_base = [
+        0.4, 0.3, 0.3, 0.4, 0.6, 0.8,  # Madrugada (0-5)
+        1.2, 1.4, 1.3, 1.1, 1.0, 0.9,  # Mañana / Pico temprano (6-11)
+        1.0, 1.1, 1.0, 0.9, 0.9, 1.0,  # Tarde (12-17)
+        1.3, 1.2, 1.1, 0.9, 0.7, 0.5   # Noche / Pico nocturno (18-23)
+    ]
     
-    np.random.seed(42) # Estabilidad de datos
-    n_registros = 50
+    # Caudal medio base asignado a este nodo (por ejemplo, 0.010 m3/s o 10 Litros/segundo)
+    caudal_medio = np.random.uniform(0.005, 0.025)
     
-    # 1. Coordenadas reales dentro de la caja geográfica de Girardot
-    latitudes = np.random.uniform(4.295, 4.315, n_registros)
-    longitudes = np.random.uniform(-74.815, -74.795, n_registros)
+    registros = []
+    fecha_base = datetime.strptime(fecha_inicio, "%Y-%m-%d")
     
-    # 2. Casos de negocio y anomalías simuladas
-    ids = list(range(1001, 1001 + n_registros))
-    
-    # Valores base por defecto (Comportamiento Normal)
-    lec_abr = np.random.randint(100, 500, n_registros)
-    lec_may = lec_abr + np.random.randint(10, 25, n_registros)
-    lec_jun = lec_may + np.random.randint(10, 25, n_registros)
-    consumo_fac = lec_jun - lec_may
-    
-    observaciones = ["LECTURA NORMAL"] * n_registros
-    estratos = np.random.choice(["1 - BAJO BAJO", "2 - BAJO", "3 - MEDIO BAJO", "4 - MEDIO"], n_registros)
-    estados = ["CON SERVICIO"] * n_registros
-    fechas_inst = np.random.choice(["2016-05-20", "2018-11-14", "2022-01-10", "2025-03-15"], n_registros)
+    for h in horas:
+        timestamp = fecha_base + timedelta(hours=h)
+        
+        # Aplicar el multiplicador con un pequeño ruido aleatorio del 5% (variación del mundo real)
+        ruido = np.random.normal(0, 0.05)
+        caudal_simulado = caudal_medio * multiplicadores_base[h] * (1 + ruido)
+        
+        registros.append({
+            "timestamp": timestamp,
+            "id_punto": id_punto,
+            "caudal_simulado_m3s": max(0.0, round(caudal_simulado, 5)),
+            "estado_sensor": "SINTETICO"
+        })
+        
+    return pd.DataFrame(registros)
 
-    # Inyección forzada de Anomalías de Campo para validar tus alertas:
-    # Caso A: Fraude Potencial / Lectura Negativa (ID 1005)
-    lec_jun[4] = lec_may[4] - 15  
-    consumo_fac[4] = 10
+def simular_evento_fuga_girardot(df_demandas, id_nodo_critico, hora_fuga=14):
+    """
+    Modifica la serie de tiempo para simular una ruptura de tubería o fuga masiva
+    a partir de una hora determinada, inyectando una pérdida constante de caudal.
+    """
+    df_fuga = df_demandas.copy()
     
-    # Caso B: Medidor Frenado / Consumo cero sospechoso (ID 1012)
-    lec_abr[11] = 320
-    lec_may[11] = 320
-    lec_jun[11] = 320
-    consumo_fac[11] = 0
+    # Simular una pérdida de 15 Litros por segundo (0.015 m3/s) debido a la ruptura
+    magnitud_fuga = 0.015 
     
-    # Caso C: Alto Consumo / Fuga invisible en Estrato Bajo (ID 1025)
-    estratos[24] = "1 - BAJO BAJO"
-    lec_jun[24] = lec_may[24] + 85  # Consumo real 85m3
-    consumo_fac[24] = 85
-    
-    # Caso D: Cambio de Medidor Exitoso (ID 1030)
-    lec_may[29] = 980
-    lec_jun[29] = 12  # Vuelta a cero
-    consumo_fac[29] = 12
-    observaciones[29] = "MEDIDOR CAMBIADO"
-
-    # 3. Construcción del DataFrame comercial
-    datos = {
-        "SUSCRIPTOR": ids,
-        "LEC ABRIL 2026": lec_abr,
-        "LEC MAYO 2026": lec_may,
-        "LEC JUNIO 2026": lec_jun,
-        "CONSUMO": consumo_fac,
-        "ANOMALIA": observaciones,
-        "NIVEL": estratos,
-        "CONDICION": estados,
-        "FECHA_MEDIDOR": fechas_inst,
-        "LATITUD": latitudes,
-        "LONGITUD": longitudes
-    }
-    
-    df = pd.DataFrame(datos)
-    
-    # Guardar en la raíz
-    ruta_salida = "datos_facturacion_campo.xlsx"
-    df.to_excel(ruta_salida, index=False)
-    print(f"✨ Archivo '{ruta_salida}' generado con éxito con {n_registros} medidores.")
-
-if __name__ == "__main__":
-    crear_excel_simulado()
+    for idx, fila in df_fuga.iterrows():
+        if fila['id_punto'] == id_nodo_critico and fila['timestamp'].hour >= hora_fuga:
+            df_fuga.at[idx, 'caudal_simulado_m3s'] += magnitud_fuga
+            df_fuga.at[idx, 'estado_sensor'] = "ALERTA_FUGA_SIMULADA"
+            
+    return df_fuga
