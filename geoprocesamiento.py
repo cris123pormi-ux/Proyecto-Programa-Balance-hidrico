@@ -1,25 +1,64 @@
+import geopandas as gpd
+from shapely.geometry import Point, LineString
 import pandas as pd
-from pymongo import MongoClient
 
-def integrar_gemelo_digital(df_auditoria, col_map_auditoria, log, ruta_pem=None):
-    uri = "mongodb://ac-pcoifqi-shard-00-01.oafwuqv.mongodb.net,ac-pcoifqi-shard-00-00.oafwuqv.mongodb.net,ac-pcoifqi-shard-00-02.oafwuqv.mongodb.net/?tls=true&authMechanism=MONGODB-X509&authSource=%24external&maxIdleTimeMS=45000&minPoolSize=0&replicaSet=atlas-t1u5dd-shard-0&compressors=zlib&appName=Data+Explorer--6a524b2b366a569efa0c75c6"
-    args = {'tlsCertificateKeyFile': ruta_pem} if ruta_pem else {}
-    try:
-        log.info("🌐 Conectando a MongoDB Atlas para alimentar el Gemelo Digital...")
-        client = MongoClient(uri, **args)
-        df_puntos = pd.DataFrame(list(client['GemeloDigitalGirardot']['gemelo_digital_puntos'].find({})))
-        if df_puntos.empty: return df_auditoria
+def crear_capa_nodos(df_mapa):
+    """
+    Toma los puntos de infraestructura del mapa hidráulico y los convierte
+    en una capa geoespacial (GeoDataFrame) de nodos.
+    """
+    # Suponiendo que tus documentos de MongoDB guardan la ubicación como 'latitud' y 'longitud'
+    # o dentro de un objeto GeoJSON de tipo 'coordenadas'
+    if 'longitud' not in df_mapa.columns or 'latitud' not in df_mapa.columns:
+        print("⚠️ No se encontraron columnas explícitas de latitud/longitud en el mapa.")
+        return gpd.GeoDataFrame()
+    
+    # 1. Crear geometrías de tipo Punto usando Shapely
+    geometria = [Point(xy) for xy in zip(df_mapa['longitud'], df_mapa['latitud'])]
+    
+    # 2. Construir el GeoDataFrame asignando el sistema de coordenadas WGS84 (EPSG:4326)
+    gdf_nodos = gpd.GeoDataFrame(df_mapa, geometry=geometria, crs="EPSG:4326")
+    
+    # 3. Proyectar a coordenadas métricas de Colombia (Origen Nacional EPSG:9377) 
+    # Esto es crucial para poder calcular distancias y radios en metros exactos en Girardot
+    gdf_nodos = gdf_nodos.to_crs(epsg=9377)
+    
+    return gdf_nodos
+
+def crear_capa_tuberias(df_mapa, gdf_nodos):
+    """
+    Construye las líneas de las tuberías conectando geométricamente
+    el 'nodo_inicio' con el 'nodo_fin'.
+    """
+    tuberias = []
+    
+    # Verificar que existan las conexiones topológicas en tus datos
+    if 'nodo_inicio' not in df_mapa.columns or 'nodo_fin' not in df_mapa.columns:
+        print("⚠️ No hay datos de conectividad topológica para trazar tuberías.")
+        return gpd.GeoDataFrame()
+    
+    # Filtrar solo registros que actúen como enlaces/tuberías
+    df_lineas = df_mapa[df_mapa['nodo_inicio'].notna() & df_mapa['nodo_fin'].notna()]
+    
+    # Indexar nodos por su ID para búsquedas ultra rápidas de coordenadas
+    nodos_indexados = gdf_nodos.set_index('_id')
+    
+    for idx, fila in df_lineas.iterrows():
+        id_ini = str(fila['nodo_inicio'])
+        id_fin = str(fila['nodo_fin'])
         
-        df_puntos.columns = df_puntos.columns.astype(str).str.strip()
-        if '_id' in df_puntos.columns: df_puntos = df_puntos.drop(columns=['_id'])
-        
-        col_llave_comercial = col_map_auditoria['id_cuenta']
-        col_llave_espacial = 'Contrato' if 'Contrato' in df_puntos.columns else ('ID' if 'ID' in df_puntos.columns else df_puntos.columns)
-        
-        df_auditoria[col_llave_comercial] = df_auditoria[col_llave_comercial].astype(str).str.strip()
-        df_puntos[col_llave_espacial] = df_puntos[col_llave_espacial].astype(str).str.strip()
-        
-        return pd.merge(df_auditoria, df_puntos, left_on=col_llave_comercial, right_on=col_llave_espacial, how='left')
-    except Exception as e:
-        log.error(f"❌ Error en sincronización geoespacial: {e}")
-        return df_auditoria
+        if id_ini in nodos_indexados.index and id_fin in nodos_indexados.index:
+            # Extraer las coordenadas geográficas de ambos extremos
+            punto_ini = nodos_indexados.loc[id_ini, 'geometry']
+            punto_fin = nodos_indexados.loc[id_fin, 'geometry']
+            
+            # Crear la línea física que une los dos puntos
+            linea_tuberia = LineString([punto_ini, punto_fin])
+            tuberias.append({
+                'id_tuberia': fila.get('_id'),
+                'diametro': fila.get('diametro'),
+                'geometry': linea_tuberia
+            })
+            
+    gdf_tuberias = gpd.GeoDataFrame(tuberias, crs="EPSG:9377")
+    return gdf_tuberias
