@@ -1,39 +1,31 @@
-import pandas as pd
 import lector_mongo
+import validaciones
 import red_hidraulica
+import pandas as pd
 
-def ejecutar_gemelo_digital_completo():
-    print("🔋 Conectando a MongoDB Atlas como 'render_user'...")
+def flujo_con_control_de_calidad():
+    print("📡 Conectando y descargando datos...")
+    client = lector_mongo.obtener_cliente_mongo()
     
-    try:
-        # 1. Descargar topología de red de tuberías de Girardot
-        client = lector_mongo.obtener_cliente_mongo()
-        db_mapa = client['Mapa']['mapa hidraulico']
-        df_mapa = pd.DataFrame(list(db_mapa.find({})))
-        print(f"✅ Infraestructura descargada: {len(df_mapa)} elementos de red encontrados.")
-        
-        # 2. Descargar demandas / consumos de agua en tiempo real
-        db_puntos = client['GemeloDigitalGirardot']['gemelo_digital_puntos']
-        cursor_puntos = db_puntos.find({})
-        
-        diccionario_demandas = {}
-        for doc in cursor_puntos:
-            id_nodo = doc.get('id_punto', doc.get('_id'))
-            caudal = doc.get('caudal', doc.get('consumo', 0.0))
-            diccionario_demandas[str(id_nodo)] = float(caudal)
-        print(f"✅ Demandas cargadas: {len(diccionario_demandas)} puntos con consumo activo.")
-        
-        client.close()
-        
-        # 3. Procesar y simular hidráulicamente con EPANET (WNTR)
-        print("💧 Procesando simulación matemática de presiones urbanas...")
-        presiones, caudales = red_hidraulica.construir_y_simular_red_desde_mongo(df_mapa, diccionario_demandas)
-        
-        if presiones is not None:
-            print("🎉 ¡Simulación finalizada! El Gemelo Digital está sincronizado y corriendo.")
-            
-    except Exception as e:
-        print(f"❌ Error crítico en la ejecución del ecosistema: {e}")
+    # Descargas crudas de MongoDB
+    df_mapa_crudo = pd.DataFrame(list(client['Mapa']['mapa hidraulico'].find({})))
+    puntos_crudos = client['GemeloDigitalGirardot']['gemelo_digital_puntos'].find({})
+    
+    dict_demandas_crudo = {}
+    for doc in puntos_crudos:
+        id_nodo = doc.get('id_punto', doc.get('_id'))
+        dict_demandas_crudo[str(id_nodo)] = doc.get('caudal', 0.0)
+    client.close()
+    
+    # ✨ PASO RECOMENDADO: VALIDACIÓN Y LIMPIEZA
+    print("🧼 Validando consistencia de datos hidráulicos...")
+    df_mapa_limpio = validaciones.limpiar_y_validar_infraestructura(df_mapa_crudo)
+    dict_demandas_limpio = validaciones.validar_diccionario_demandas(dict_demandas_crudo)
+    
+    # Simulación segura
+    print("💧 Procesando en motor de simulación WNTR/EPANET...")
+    presiones, caudales = red_hidraulica.construir_y_simular_red_desde_mongo(df_mapa_limpio, dict_demandas_limpio)
+    print("🏁 Proceso completado de extremo a extremo.")
 
 if __name__ == "__main__":
-    ejecutar_gemelo_digital_completo()
+    flujo_con_control_de_calidad()
