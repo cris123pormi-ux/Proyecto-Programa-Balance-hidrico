@@ -1,26 +1,24 @@
-import lector_mongo
 import generar_datos_girardot
-import red_hidraulica
+import reportes
 import pandas as pd
+import numpy as np
 
-def simular_contingencia_en_la_red():
-    print("🤖 Iniciando entorno de pruebas y simulación de fallas...")
+def flujo_con_generacion_de_reportes():
+    print("🔄 Corriendo simulación interna de contingencia...")
     
-    # 1. Creamos datos sintéticos para un nodo de Girardot (ej: Hub_Terminal_Transportes)
-    nodo_prueba = "Hub_Terminal"
-    print(f"Generando curva de demanda base de 24 horas para: {nodo_prueba}")
-    df_consumo_normal = generar_datos_girardot.generar_patron_demanda_diaria(nodo_prueba)
+    # 1. Obtenemos datos de prueba con una fuga simulada usando el módulo anterior
+    nodo_test = "Hub_Girardot_Centro"
+    df_base = generar_datos_girardot.generar_patron_demanda_diaria(nodo_test)
+    df_fuga = generar_datos_girardot.simular_evento_fuga_girardot(df_base, nodo_test, hora_fuga=11)
     
-    # 2. Inyectamos una fuga a las 2:00 PM (Hora 14) para ver qué pasa con la presión
-    print("💥 Inyectando simulación de ruptura de tubería a las 14:00 horas...")
-    df_con_fuga = generar_datos_girardot.simular_evento_fuga_girardot(df_consumo_normal, nodo_prueba, hora_fuga=14)
+    # 2. EJECUTAR EL GENERADOR DE REPORTES GRÁFICOS
+    print("🎨 Generando componentes visuales del Gemelo Digital...")
+    reportes.graficar_curva_consumo_y_fuga(df_fuga, nodo_test)
     
-    # Imprimir las últimas horas para validar el incremento de caudal
-    print(df_con_fuga[['timestamp', 'caudal_simulado_m3s', 'estado_sensor']].tail(12))
-    
-    # 3. Aquí pasarías este DataFrame con sobrecosto de caudal a tu red_hidraulica
-    # para verificar analíticamente cuánta presión cae en los barrios aledaños de Girardot.
-    print("✅ Datos de contingencia listos para el estrés del motor hidráulico.")
+    # 3. Simular una serie ficticia de presiones de EPANET para probar el histograma
+    # Simulamos 100 nodos con presiones aleatorias distribuidas normalmente alrededor de 22 mca
+    presiones_simuladas = pd.Series(np.random.normal(loc=22, scale=5, size=100))
+    reportes.generar_resumen_presiones_criticas(presiones_simuladas, umbral_critico=15.0)
 
 if __name__ == "__main__":
-    simular_contingencia_en_la_red()
+    flujo_con_generacion_de_reportes()
