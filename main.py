@@ -1,31 +1,27 @@
 import lector_mongo
 import validaciones
 import red_hidraulica
+import geoprocesamiento
 import pandas as pd
 
-def flujo_con_control_de_calidad():
-    print("📡 Conectando y descargando datos...")
+def flujo_con_mapeo_geografico():
+    print("🛰️ Descargando datos de Girardot desde MongoDB Atlas...")
     client = lector_mongo.obtener_cliente_mongo()
-    
-    # Descargas crudas de MongoDB
     df_mapa_crudo = pd.DataFrame(list(client['Mapa']['mapa hidraulico'].find({})))
-    puntos_crudos = client['GemeloDigitalGirardot']['gemelo_digital_puntos'].find({})
-    
-    dict_demandas_crudo = {}
-    for doc in puntos_crudos:
-        id_nodo = doc.get('id_punto', doc.get('_id'))
-        dict_demandas_crudo[str(id_nodo)] = doc.get('caudal', 0.0)
     client.close()
     
-    # ✨ PASO RECOMENDADO: VALIDACIÓN Y LIMPIEZA
-    print("🧼 Validando consistencia de datos hidráulicos...")
+    # 1. Limpieza técnica
     df_mapa_limpio = validaciones.limpiar_y_validar_infraestructura(df_mapa_crudo)
-    dict_demandas_limpio = validaciones.validar_diccionario_demandas(dict_demandas_crudo)
     
-    # Simulación segura
-    print("💧 Procesando en motor de simulación WNTR/EPANET...")
-    presiones, caudales = red_hidraulica.construir_y_simular_red_desde_mongo(df_mapa_limpio, dict_demandas_limpio)
-    print("🏁 Proceso completado de extremo a extremo.")
+    # 2. PROCESAMIENTO GEOGRÁFICO
+    print("🗺️ Construyendo capas espaciales para el Gemelo Digital...")
+    gdf_nodos = geoprocesamiento.crear_capa_nodos(df_mapa_limpio)
+    gdf_tuberias = geoprocesamiento.crear_capa_tuberias(df_mapa_limpio, gdf_nodos)
+    
+    print(f"📊 Capas GIS listas: {len(gdf_nodos)} nodos y {len(gdf_tuberias)} tuberías georreferenciadas.")
+    
+    # Aquí ya podrías exportar tus capas a formato GeoJSON o Shapefile para visualizarlas en un mapa web:
+    # gdf_tuberias.to_file("tuberias_girardot.geojson", driver="GeoJSON")
 
 if __name__ == "__main__":
-    flujo_con_control_de_calidad()
+    flujo_con_mapeo_geografico()
