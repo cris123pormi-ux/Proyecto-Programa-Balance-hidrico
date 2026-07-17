@@ -4,54 +4,65 @@ import json
 import pandas as pd
 import numpy as np
 
-# ======================================================================
-# 🚀 IMPORTACIÓN DE MÓDULOS DEL GEMELO DIGITAL
-# ======================================================================
-import lector_mongo
-import validaciones
-import red_hidraulica
-import geoprocesamiento
-import generar_datos_girardot
-import balance
-import reportes
+# AUTO-ENRUTADOR DE SEGURIDAD
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Importación de los módulos analíticos reales de la arquitectura HydroAI-Pro
+from src.lector_excel import cargar_y_mapear_excel_universal
+from src.validaciones import limpiar_y_tipificar_datos_universales
+from src.consumo import calcular_consumo_exacto_universal
+from src.metrologia import aplicar_sinceramiento_metrologico
+from src.balance import ejecutar_balance_hidrico_universal
+from src.geoprocesamiento import integrar_gemelo_digital
+from src.reportes import generar_mapa_interactivo_girardot
+import src.lector_mongo as lector_mongo
 
 class LectorMongoSimulado:
     """Encapsula el simulador de datos para pruebas locales sin conexión."""
     class MockCollection:
         def find(self, query):
-            # Simulación analítica de caudales por nodo
-            return [{'id_punto': f'Nodo_{i}', 'caudal': float(np.random.uniform(5.0, 25.0))} for i in range(50)]
+            return [{
+                '_id': f'Mock_ID_{i}',
+                'type': 'Feature',
+                'properties': {'id_nodo': f'Nodo_{i}', 'elevacion': 285.0, 'caudal': 12.5, 'barrio': 'Urb Brisas de Girardot'},
+                'geometry': {'coordinates': [-74.805, 4.328]}
+            } for i in range(50)]
     class MockDatabase:
         def __getitem__(self, key): return LectorMongoSimulado.MockCollection()
     def __getitem__(self, key): return LectorMongoSimulado.MockDatabase()
     def close(self): pass
 
-
 class GemeloDigitalGirardot:
-    """Clase principal que orquesta el ciclo de vida del Gemelo Digital."""
+    """Clase principal que orquesta el ciclo de vida del Gemelo Digital en HydroAI-Pro."""
     
     def __init__(self, ruta_config="config.json"):
         self.ruta_config = ruta_config
         self.config = self._cargar_configuracion()
-        self.carpeta_salida = self.config["INFRAESTRUCTURA"]["CARPETA_REPORTES"]
+        self.carpeta_salida = self.config["rutas"]["carpeta_salida"]
         self.simular_db = self.config["MONGO_SETTINGS"]["MODO_SIMULADO"]
         self._inicializar_entorno()
 
     def _cargar_configuracion(self):
-        """Lee el archivo de configuración externo config.json."""
+        """Lee el archivo de configuración externo config.json compatible con Streamlit."""
         if not os.path.exists(self.ruta_config):
-            # Si el archivo no existe, crea una plantilla base por defecto
             config_defecto = {
                 "MONGO_SETTINGS": {
                     "USUARIO": "render_user",
                     "BD_NAME": "GemeloDigitalGirardot",
                     "COLECCION": "gemelo_digital_puntos",
-                    "MODO_SIMULADO": True
+                    "MODO_SIMULADO": False
                 },
-                "INFRAESTRUCTURA": {
-                    "CARPETA_REPORTES": "reportes",
-                    "UMBRAL_CRITICO_PSI": 15.0,
-                    "NODO_MONITOREO": "Hub_Girardot_Centro"
+                "rutas": {
+                    "archivo_entrada": "data/auditoria_ingreso.xlsx",
+                    "carpeta_salida": "reportes",
+                    "logs": "logs/auditoria.log"
+                },
+                "parametros_oficiales": {
+                    "fecha_auditoria": "2026-01-01"
+                },
+                "umbrales_metrologia": {
+                    "edad_limite_anos": 10,
+                    "factor_subregistro_anual": 0.02
                 }
             }
             with open(self.ruta_config, "w", encoding="utf-8") as f:
@@ -67,107 +78,78 @@ class GemeloDigitalGirardot:
             os.makedirs(self.carpeta_salida)
 
     def obtener_cliente_conexion(self):
-        """Decide dinámicamente si usa la nube real o el entorno simulado."""
+        """Decide dinámicamente si usa MongoDB Atlas real o el entorno simulado."""
         if self.simular_db:
             return LectorMongoSimulado()
         else:
-            return lector_mongo.obtener_cliente_mongo()
+            return lector_mongo.obtener_cliente_mongo(usuario="render_user", password="Girardot2026")
 
-    def ejecutar_pipeline_completo(self):
+    def ejecutar_pipeline_completo(self, agua_planta=1500000, consumo_operativo=12000, limite_anomalo=300):
         print("======================================================================")
-        print("🚀 INICIANDO SISTEMA INTEGRADO - GEMELO DIGITAL GIRARDOT 2026")
+        print("🚀 INICIANDO BACKEND INTEGRADO - HYDROAI-PRO / GIRARDOT 2026")
         print("======================================================================")
 
         try:
-            # Extracción de variables desde el objeto de configuración JSON
-            nodo_monitoreo = self.config["INFRAESTRUCTURA"]["NODO_MONITOREO"]
-            umbral_psi = self.config["INFRAESTRUCTURA"]["UMBRAL_CRITICO_PSI"]
-            db_name = self.config["MONGO_SETTINGS"]["BD_NAME"]
-            col_name = self.config["MONGO_SETTINGS"]["COLECCION"]
-
-            # 1. CONEXIÓN E INGESTA DESDE LA NUBE
-            print(f"\n📡 [1/6] Conectando a infraestructura (Modo Simulado: {self.simular_db})...")
+            # 1. INGESTA Y CRUCE GEOJSON DESDE ATLAS
+            print(f"\n📡 [1/5] Descargando infraestructura estructural (Modo Simulado: {self.simular_db})...")
             client = self.obtener_cliente_conexion()
-            db_puntos = client[db_name][col_name]
-            cursor_puntos = db_puntos.find({})
-
-            dict_demandas_crudo = {}
-            for doc in cursor_puntos:
-                id_nodo = doc.get('id_punto', doc.get('_id'))
-                dict_demandas_crudo[str(id_nodo)] = doc.get('caudal', 0.0)
-            client.close()
-            print(f"✅ Descarga exitosa de {len(dict_demandas_crudo)} demandas en tiempo real.")
-
-            df_mapa_crudo = pd.DataFrame([{'_id': k, 'elevacion': 285.0} for k in dict_demandas_crudo.keys()])
-
-            # 2. CONTROL DE CALIDAD Y VALIDACIONES
-            print("\n🧼 [2/6] Ejecutando rutinas de control de calidad de datos...")
-            df_mapa_limpio = validaciones.limpiar_y_validar_infraestructura(df_mapa_crudo)
-            dict_demandas_limpio = validaciones.validar_diccionario_demandas(dict_demandas_crudo)
-            print("✅ Consistencia y tipos de datos validados correctamente.")
-
-            # 3. PROCESAMIENTO GEOGRÁFICO (SIG)
-            print("\n🗺️ [3/6] Generando capas geográficas del Gemelo Digital...")
-            gdf_nodos = geoprocesamiento.crear_capa_nodos(df_mapa_limpio)
-            print("✅ Red georreferenciada procesada.")
-
-            # 4. SIMULACIÓN HIDRÁULICA (EPANET / WNTR)
-            print("\n💧 [4/6] Transmitiendo datos al motor analítico EPANET...")
-            nodos_lista = list(dict_demandas_limpio.keys()) if len(dict_demandas_limpio) > 0 else [f"Nodo_{i}" for i in range(50)]
-            presiones_array = np.random.normal(loc=22, scale=4, size=len(nodos_lista))
-            presiones_simuladas = pd.Series(presiones_array)
             
-            # Estructurar DataFrame de presiones para Power BI
-            df_presiones_pbi = pd.DataFrame({
-                'ID_Nodo': nodos_lista,
-                'Presion_PSI': presiones_array,
-                'Estado': ['Crítico' if p < umbral_psi else 'Normal' for p in presiones_array]
-            })
-            reportes.generar_resumen_presiones_criticas(presiones_simuladas, umbral_critico=umbral_psi)
+            # Descarga del mapa físico
+            cursor_mapa = client['Mapa']['mapa hidraulico'].find({})
+            registros_mapa_hidraulico = []
+            
+            for doc in cursor_mapa:
+                properties = doc.get('properties', {})
+                geometry = doc.get('geometry', {})
+                coordenadas = geometry.get('coordinates', [-74.805, 4.328])
+                
+                registros_mapa_hidraulico.append({
+                    '_id': str(properties.get('id_nodo', doc.get('_id'))),
+                    'elevacion': float(properties.get('elevacion', 285.0)),
+                    'barrio': properties.get('barrio', 'Urb Brisas de Girardot'),
+                    'longitud': float(coordenadas[0]) if len(coordenadas) > 0 else -74.805,
+                    'latitud': float(coordenadas[1]) if len(coordenadas) > 1 else 4.328
+                })
+            client.close()
+            print(f"✅ Ingesta exitosa: {len(registros_mapa_hidraulico)} nodos cargados desde la base de datos 'Mapa'.")
 
-            # 5. MODELAMIENTO HIDROLÓGICO (BALANCE)
-            print("\n🌤️ [5/6] Analizando balance hídrico de la cuenca superficial...")
-            datos_clima_girardot = pd.DataFrame({
-                'Mes': ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-                'Temperatura_C': [28.5, 29.0, 28.2, 27.5, 27.2, 28.0, 28.8, 29.2, 28.5, 27.0, 26.8, 27.8],
-                'Precipitacion_mm': [35.0, 45.0, 80.0, 120.0, 110.0, 40.0, 25.0, 30.0, 75.0, 140.0, 135.0, 60.0]
-            })
-            df_balance = balance.calcular_balance_hidrico_cuenca(datos_clima_girardot, capacidad_almacenamiento=120.0)
-            print("✅ Balance hídrico finalizado.")
+            # 2. PROCESAMIENTO DEL CORE COMERCIAL (EXCEL DE AUDITORÍA)
+            print("\n📊 [2/5] Procesando registros comerciales de auditoría...")
+            df, col_map = cargar_y_mapear_excel_universal(self.config['rutas']['archivo_entrada'])
+            df = limpiar_y_tipificar_datos_universales(df, col_map)
+            df = calcular_consumo_exacto_universal(df, limite_anomalo)
+            
+            # 3. SINCERAMIENTO METROLÓGICO (EDAD DE MEDIDORES)
+            print("\n🧼 [3/5] Aplicando modelos analíticos de subregistro y desgaste...")
+            df = aplicar_sinceramiento_metrologico(
+                df, col_map, 
+                self.config['parametros_oficiales']['fecha_auditoria'], 
+                self.config['umbrales_metrologia']['edad_limite_anos'], 
+                self.config['umbrales_metrologia']['factor_subregistro_anual']
+            )
 
-            # 6. SIMULACIÓN DE ESCENARIOS Y REPORTES
-            print("\n📊 [6/6] Ejecutando simulación de escenarios de falla y gráficos...")
-            df_demanda_sintetica = generar_datos_girardot.generar_patron_demanda_diaria(nodo_monitoreo)
-            df_escenario_fuga = generar_datos_girardot.simular_evento_fuga_girardot(df_demanda_sintetica, nodo_monitoreo, hora_fuga=11)
+            # 4. BALANCE HÍDRICO GLOBAL E INTEGRACIÓN CON EL GEMELO DIGITAL
+            print("\n💧 [4/5] Ejecutando balance hídrico y acoplamiento geoespacial...")
+            df_norm, df_esp, ind = ejecutar_balance_hidrico_universal(df, col_map, agua_planta, consumo_operativo)
+            
+            # Cruce de la auditoría comercial con los datos físicos GeoJSON de Brisas de Girardot
+            df_mapa_fisi = pd.DataFrame(registros_mapa_hidraulico)
+            df_gemelo = pd.merge(df_norm, df_mapa_fisi, left_on=col_map['id_cuenta'], right_on='_id', how='left')
 
-            reportes.graficar_curva_consumo_y_fuga(df_escenario_fuga, nodo_monitoreo)
-
-            # 7. EXPORTACIÓN EXCLUSIVA PARA POWER BI
-            self.exportar_archivos_power_bi(df_presiones_pbi, df_balance, df_escenario_fuga)
-
+            # 5. GENERACIÓN DE REPORTES E INTERFACES VISUALES
+            print("\n💾 [5/5] Exportando capas cartográficas y tabulares...")
+            generar_mapa_interactivo_girardot(df_gemelo, col_map, self.carpeta_salida)
+            
+            # Exportación de conveniencia para Power BI
+            df_gemelo.to_csv(os.path.join(self.carpeta_salida, "pbi_gemelo_digital.csv"), index=False, encoding='utf-8')
+            
             print("\n======================================================================")
-            print("🎉 ¡PROCESO DE GEMELO DIGITAL COMPLETADO CON ÉXITO!")
+            print(f"🎉 ¡PIPELINE EXITOSO! IANC OPTIMIZADO: {ind['ianc']:.2f}%")
             print("======================================================================")
 
         except Exception as e:
-            print(f"\n❌ Error crítico durante la orquestación del programa: {e}")
+            print(f"\n❌ ERROR CRÍTICO EN EL BACKEND: {str(e)}")
 
-    def exportar_archivos_power_bi(self, df_presiones, df_balance, df_fugas):
-        """Exporta los DataFrames resultantes a archivos CSV listos para Power BI."""
-        print("\n💾 [Power BI] Exportando datos tabulares a la carpeta 'reportes'...")
-        
-        ruta_presiones = os.path.join(self.carpeta_salida, "pbi_presiones_nodos.csv")
-        ruta_balance = os.path.join(self.carpeta_salida, "pbi_balance_hidrico.csv")
-        ruta_fugas = os.path.join(self.carpeta_salida, "pbi_escenario_fuga.csv")
-        
-        df_presiones.to_csv(ruta_presiones, index=False, encoding='utf-8')
-        df_balance.to_csv(ruta_balance, index=False, encoding='utf-8')
-        df_fugas.to_csv(ruta_fugas, index=False, encoding='utf-8')
-        print("✅ Archivos CSV listos y optimizados para Power BI.")
-
-
-# BLOQUE DE EJECUCIÓN DIRECTA NATIVA
 if __name__ == "__main__":
-    # Instanciamos la clase del programa apuntando a su archivo de configuración
-    gemelo = GemeloDigitalGirardot(ruta_config="config.json")
+    gemelo = GemeloDigitalGirardot()
     gemelo.ejecutar_pipeline_completo()
